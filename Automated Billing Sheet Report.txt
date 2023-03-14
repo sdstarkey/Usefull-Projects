@@ -1,0 +1,291 @@
+function runReport() {
+  const source = SpreadsheetApp.getActive();
+
+  /** Creating variables for each sheet along with a Header array to better reference columns in each sheet */
+  const controlPanel = source.getSheetByName('Control Panel');
+  const controlPanelHeaderRange = controlPanel.getRange(1, 1, 1, controlPanel.getLastColumn()); // Default is top row
+  const controlPanelHeaderValues = controlPanelHeaderRange.getValues()[0];
+
+  const roster = source.getSheetByName('Roster Sheet');
+  const rosterHeaderRange = roster.getRange(1, 1, 1, roster.getLastColumn()); // Default is top row
+  const rosterHeaderValues = rosterHeaderRange.getValues()[0];
+
+  const inSheet = source.getSheetByName('Invoice Sheet');
+  const inSheetHeaderRange = inSheet.getRange(1, 1, 1, inSheet.getLastColumn()); // Default is top row
+  const inSheetHeaderValues = inSheetHeaderRange.getValues()[0];
+
+  const validationSheet = source.getSheetByName('Validation Sheet');
+  const validationHeaderRange = validationSheet.getRange(1, 1, 1, validationSheet.getLastColumn()); // Default is top row
+  const validationHeaderValues = validationHeaderRange.getValues()[0];
+
+  const billingSheet = source.getSheetByName('Billing Sheet');
+  const billingSheetHeaderRange = billingSheet.getRange(1, 1, 1, billingSheet.getLastColumn()); // Default is top row
+  const billingSheetHeaderValues = billingSheetHeaderRange.getValues()[0];
+
+  /** Grabbing values from the Control Panel */
+  const preparer = controlPanel.getRange(2, controlPanelHeaderValues.indexOf('Preparer') + 1).getValue();
+  const startdate = controlPanel.getRange(2, controlPanelHeaderValues.indexOf('Start Date') + 1).getValues();
+  const dateDiffStart = new Date(startdate);
+  const enddate = controlPanel.getRange(2, controlPanelHeaderValues.indexOf('End Date') + 1).getValues();
+  const dateDiffEnd = new Date(enddate);
+  const currency = controlPanel.getRange(2, controlPanelHeaderValues.indexOf('Statement Currency') + 1).getValue();
+  const rate = controlPanel.getRange(2, controlPanelHeaderValues.indexOf('Rate Type') + 1).getValue();
+  const lineType = controlPanel.getRange(2, controlPanelHeaderValues.indexOf('Line Type') + 1).getValue();
+  const rateType = controlPanel.getRange(2, controlPanelHeaderValues.indexOf('Rate Type') + 1).getValue();
+  const description = controlPanel.getRange(2, controlPanelHeaderValues.indexOf('Description') + 1).getValue();
+  const rounding = controlPanel.getRange(2, controlPanelHeaderValues.indexOf('Rounding') + 1).getValue();
+  const poLineNumber = controlPanel.getRange(2, controlPanelHeaderValues.indexOf('PO Line Number') + 1).getValue();
+
+  /** Creating arrays for the rate validation */
+  const validRole = validationSheet.getRange(2, validationHeaderValues.indexOf('Role') + 1, validationSheet.getLastRow() - 1).getValues().flat();
+  const validRate = validationSheet.getRange(2, validationHeaderValues.indexOf('Rate') + 1, validationSheet.getLastRow() - 1).getValues();
+  const validWorkflow = validationSheet.getRange(2, validationHeaderValues.indexOf('Team') + 1, validationSheet.getLastRow() - 1).getValues().flat();
+  const validSOW = validationSheet.getRange(2, validationHeaderValues.indexOf('SOW') + 1, validationSheet.getLastRow() - 1).getValues();
+  const validRequester = validationSheet.getRange(2, validationHeaderValues.indexOf('Requester') + 1, validationSheet.getLastRow() - 1).getValues();
+  const validPONumber = validationSheet.getRange(2, validationHeaderValues.indexOf('PO Number') + 1, validationSheet.getLastRow() - 1).getValues();
+  const validSupplierNumber = validationSheet.getRange(2, validationHeaderValues.indexOf('Supplier Number') + 1, validationSheet.getLastRow() - 1).getValues();
+
+  /** populates the billingSheet sheet with the required fields first */
+  let range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Month') + 1, roster.getLastRow() - 1);
+  range.setValue(startdate);
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Rate Type') + 1, roster.getLastRow() - 1);
+  range.setValue(rate);
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Preparer') + 1, roster.getLastRow() - 1);
+  range.setValue(preparer);
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Invoice Currency') + 1, roster.getLastRow() - 1);
+  range.setValue(currency);
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Line Type') + 1, roster.getLastRow() - 1);
+  range.setValue(lineType);
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Rate Type') + 1, roster.getLastRow() - 1);
+  range.setValue(rateType);
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('PO Number') + 1, roster.getLastRow() - 1);
+  range.setValue(poLineNumber);
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Description') + 1, roster.getLastRow() - 1);
+  range.setValue(description);
+  const legalfirstnames = roster.getRange(2, rosterHeaderValues.indexOf('Legal First Name') + 1, roster.getLastRow() - 1).getValues();
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Legal First Name') + 1, roster.getLastRow() - 1);
+  range.setValues(legalfirstnames);
+  const legallastnames = roster.getRange(2, rosterHeaderValues.indexOf('Legal Last Name') + 1, roster.getLastRow() - 1).getValues();
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Legal Last Name') + 1, roster.getLastRow() - 1);
+  range.setValues(legallastnames);
+  const prefname = roster.getRange(2, rosterHeaderValues.indexOf('Preferred Name') + 1, roster.getLastRow() - 1).getValues();
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Preferred Name') + 1, roster.getLastRow() - 1);
+  range.setValues(prefname);
+  const username = roster.getRange(2, rosterHeaderValues.indexOf('Username') + 1, roster.getLastRow() - 1).getValues();
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Username') + 1, roster.getLastRow() - 1);
+  range.setValues(username);
+  const bhPlacement = roster.getRange(2, rosterHeaderValues.indexOf('Team ID') + 1, roster.getLastRow() - 1).getValues();
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Team ID') + 1, roster.getLastRow() - 1);
+  range.setValues(bhPlacement);
+  const bhEmployee = roster.getRange(2, rosterHeaderValues.indexOf('Employee ID') + 1, roster.getLastRow() - 1).getValues();
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Employee ID') + 1, roster.getLastRow() - 1);
+  range.setValues(bhEmployee);
+  const jobOrder = roster.getRange(2, rosterHeaderValues.indexOf('Job') + 1, roster.getLastRow() - 1).getValues();
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Job Order') + 1, roster.getLastRow() - 1);
+  range.setValues(jobOrder);
+  const language = roster.getRange(2, rosterHeaderValues.indexOf('Language') + 1, roster.getLastRow() - 1).getValues();
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Language') + 1, roster.getLastRow() - 1);
+  range.setValues(language);
+  const billable = roster.getRange(2, rosterHeaderValues.indexOf('Billable?') + 1, roster.getLastRow() - 1).getValues();
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Billable?') + 1, roster.getLastRow() - 1);
+  range.setValues(billable);
+  const billingType = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Rate Type') + 1, roster.getLastRow() - 1).getValues();
+  billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Billing Type') + 1, roster.getLastRow() - 1).setValues(billingType);
+  const city = roster.getRange(2, rosterHeaderValues.indexOf('City') + 1, roster.getLastRow() - 1).getValues();
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('City') + 1, roster.getLastRow() - 1);
+  range.setValues(city);
+  const role = roster.getRange(2, rosterHeaderValues.indexOf('Job') + 1, roster.getLastRow() - 1).getValues();
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Role') + 1, roster.getLastRow() - 1);
+  range.setValues(role);
+
+  const startingRow = 2;
+  let row = startingRow;//keeps from righting over column headers
+  for (let i = 0; i < role.length; i++) {
+    billingSheet.getRange(row, billingSheetHeaderValues.indexOf('Rate') + 1).setValue(validRate[validRole.indexOf(role[i].toString())]);
+    row++;
+  }
+  row = startingRow;//IMPORANT!!! BE SURE TO RESET BACK TO 2 AFTER EACH FOR LOOP!!!
+
+  for (i = 1; i < username.length + 1; i++) {
+    billingSheet.getRange(row, billingSheetHeaderValues.indexOf('Line Number') + 1).setValue(i);
+    row++;
+  }
+  row = startingRow;
+
+  const workflow = roster.getRange(2, rosterHeaderValues.indexOf('Team') + 1, roster.getLastRow() - 1).getValues();
+  for (i = 0; i < workflow.length; i++) {
+    billingSheet.getRange(row, billingSheetHeaderValues.indexOf('SOW Number') + 1).setValue(validSOW[validWorkflow.indexOf(workflow[i].toString())]);
+    billingSheet.getRange(row, billingSheetHeaderValues.indexOf('Requestor') + 1).setValue(validRequester[validWorkflow.indexOf(workflow[i].toString())]);
+    billingSheet.getRange(row, billingSheetHeaderValues.indexOf('PO Number') + 1).setValue(validPONumber[validWorkflow.indexOf(workflow[i].toString())]);
+    billingSheet.getRange(row, billingSheetHeaderValues.indexOf('Supplier Number') + 1).setValue(validSupplierNumber[validWorkflow.indexOf(workflow[i].toString())]);
+    row++
+  }
+  row = startingRow;
+
+  const agentStartDate = roster.getRange(2, rosterHeaderValues.indexOf('Start Date') + 1, roster.getLastRow()).getValues();
+  const agentEndDate = roster.getRange(2, rosterHeaderValues.indexOf('End Date') + 1, roster.getLastRow()).getValues();
+  const serviceStartDate = [];
+  const serviceEndDate = [];
+  const now = new Date();
+  for (i = 0; i < roster.getLastRow() - 1; i++) {
+    if ((now.getTime() - new Date(agentStartDate[i]).getTime()) < (now.getTime() - new Date(startdate[0]).getTime())) {
+      serviceStartDate.push(agentStartDate[i]);
+    }
+    else {
+      serviceStartDate.push(startdate[0])
+    }
+    if (agentEndDate[i] != '') {
+      serviceEndDate.push(agentEndDate[i]);
+    }
+    else {
+      serviceEndDate.push(enddate[0]);
+    }
+  }
+  billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Service Start Date') + 1, roster.getLastRow() - 1).setValues(serviceStartDate);
+  billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Service End Date') + 1, roster.getLastRow() - 1).setValues(serviceEndDate);
+
+  for (i = 0; i < serviceEndDate.length; i++) {
+    const serviceDateDiffEnd = new Date(serviceEndDate[i]);
+    const serviceDateDiffStart = new Date(serviceStartDate[i]);
+    const serviceDateDiff = ((serviceDateDiffEnd - serviceDateDiffStart) / (1000 * 60 * 60 * 24));
+    const dateDiff = (dateDiffEnd - dateDiffStart) / (1000 * 60 * 60 * 24);
+    const qty = serviceDateDiff / dateDiff;
+    if (rounding == 'Exact') {
+      billingSheet.getRange(row, billingSheetHeaderValues.indexOf('QTY') + 1).setValue(qty.toFixed(2));
+    }
+    if (rounding == 'Quarters') {
+      if ((qty > 0) && (qty <= 0.25)) {
+        billingSheet.getRange(row, billingSheetHeaderValues.indexOf('QTY') + 1).setValue(0.25);
+      }
+      if ((qty >= 0.26) && (qty <= 0.50)) {
+        billingSheet.getRange(row, billingSheetHeaderValues.indexOf('QTY') + 1).setValue(0.50);
+      }
+      if ((qty >= 0.51) && (qty <= 0.75)) {
+        billingSheet.getRange(row, billingSheetHeaderValues.indexOf('QTY') + 1).setValue(0.75);
+      }
+      if (qty >= 0.76) {
+        billingSheet.getRange(row, billingSheetHeaderValues.indexOf('QTY') + 1).setValue(1);
+      }
+    }
+    row++;
+  }
+  const bsRate = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Rate') + 1, billingSheet.getLastRow() - 1).getValues();
+  const bsQTY = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('QTY') + 1, billingSheet.getLastRow() - 1).getValues();
+  row = startingRow;
+  for (i = 0; i < bsRate.length; i++) {
+    billingSheet.getRange(row, billingSheetHeaderValues.indexOf('Total') + 1).setValue(bsRate[i] * bsQTY[i]);
+    row++
+  }
+  row = startingRow;
+  range = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Billable Quantity') + 1, roster.getLastRow() - 1);
+  range.setValues(billingSheet.getRange(2, billingSheetHeaderValues.indexOf('QTY') + 1, roster.getLastRow() - 1).getValues());
+
+  for (i = 0; i < serviceEndDate.length; i++) {
+    const hoursWorked = workdays_between(serviceStartDate[i], serviceEndDate[i]) * 8;
+    billingSheet.getRange(row, billingSheetHeaderValues.indexOf('Actual Hours Worked') + 1).setValue(hoursWorked);
+    row++
+  }
+  row = startingRow;
+
+  //delete people that don't need to be in the report.
+  const reportedHoursWorked = billingSheet.getRange(2, billingSheetHeaderValues.indexOf('Actual Hours Worked') + 1, billingSheet.getLastRow()).getValues()
+  for (i = 0; i < billingSheet.getLastRow(); i++) {
+    if (reportedHoursWorked[i] == 0) {
+      billingSheet.getRange(row, 1, row, billingSheet.getLastColumn()).clear();
+    }
+    row++
+  }
+  row = startingRow;
+
+  // Start of code for IN sheet
+  const inSheetRate = billingSheet.getRange(startingRow, billingSheetHeaderValues.indexOf('Rate') + 1, billingSheet.getLastRow() - 1).getValues();
+  const inSheetQTY = billingSheet.getRange(startingRow, billingSheetHeaderValues.indexOf('QTY') + 1, billingSheet.getLastRow() - 1).getValues();
+  const inSheetAmount = billingSheet.getRange(startingRow, billingSheetHeaderValues.indexOf('Total') + 1, billingSheet.getLastRow() - 1).getValues();
+  Logger.log(inSheetQTY);
+  Logger.log(inSheetAmount);
+  inSheet.getRange(2, 1).setValue(description);
+  inSheet.getRange(4, 1).setValue(startdate);
+
+  let fullName = [];
+  const inSheetLegalFirstName = billingSheet.getRange(startingRow, billingSheetHeaderValues.indexOf('Legal First Name') + 1, billingSheet.getLastRow() - 1).getValues();
+  const inSheetLegalLastName = billingSheet.getRange(startingRow, billingSheetHeaderValues.indexOf('Legal Last Name') + 1, billingSheet.getLastRow() - 1).getValues();
+  const inSheetUsername = billingSheet.getRange(startingRow, billingSheetHeaderValues.indexOf('Username') + 1, billingSheet.getLastRow() - 1).getValues();
+  for (i = 0; i < inSheetLegalFirstName.length; i++) {
+    fullName.push(inSheetLegalFirstName[i].toString() + ' ' + inSheetLegalLastName[i].toString());
+  }
+  row = 6;
+  for (i = 0; i < fullName.length + 1; i++) {
+    inSheet.insertRowBefore(row);
+    inSheet.getRange(row, 1).setValue(fullName[i]);
+    inSheet.getRange(row, 2).setValue(inSheetUsername[i]);
+    inSheet.getRange(row, inSheetHeaderValues.indexOf('Monthly Rate') + 1).setValue(inSheetRate[i]);
+    inSheet.getRange(row, inSheetHeaderValues.indexOf('QTY') + 1).setValue(inSheetQTY[i]);
+    inSheet.getRange(row, inSheetHeaderValues.indexOf('Amount') + 1).setValue(inSheetAmount[i]);
+    row++
+  }
+  row = 2;
+}
+
+function workdays_between(start_date_string, end_date_string) {
+  const startDate = new Date(start_date_string)
+  const endDate = new Date(end_date_string)
+  // Validate input
+  if (endDate <= startDate) { return 0; }
+  // Calculate days between dates
+  const millisecondsPerDay = 86400 * 1000; // Day in milliseconds
+  startDate.setHours(0, 0, 0, 1);  // Start just after midnight
+  endDate.setHours(23, 59, 59, 999);  // End just before midnight
+  const diff = endDate - startDate;  // Milliseconds between datetime objects   
+  let days = Math.ceil(diff / millisecondsPerDay);
+  // Subtract two weekend days for every week in between
+  const weeks = Math.floor(days / 7);
+  days -= weeks * 2;
+  // Handle special cases
+  const startDay = startDate.getDay();
+  const endDay = endDate.getDay();
+  // Remove weekend not previously removed.  
+  if (startDay - endDay > 1) { days -= 2; }
+  // Remove start day if span starts on Sunday but ends before Saturday
+  if (startDay == 0 && endDay != 6) { days--; }
+  // Remove end day if span ends on Saturday but starts after Sunday
+  if (endDay == 6 && startDay != 0) { days--; }
+  return days
+}
+
+function onOpen() {
+  // this function creates the menu buttons for report creation.
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('Report')
+    .addItem('Run', 'showAlert')
+    .addItem('Reset', 'clearSheets')
+    .addToUi();
+}
+
+function clearSheets() {
+  const source = SpreadsheetApp.getActive();
+  const billingStatement = source.getSheetByName('Billing Sheet');
+  const invoiceSheet = source.getSheetByName('Invoice Sheet');
+  const deleteRange = billingStatement.getRange(2, 1, billingStatement.getLastRow()).getValues();
+  const x = deleteRange.length;
+  billingStatement.deleteRows(2, billingStatement.getLastRow());
+  invoiceSheet.deleteRows(6, x);
+}
+
+function showAlert() {
+  const ui = SpreadsheetApp.getUi(); // Same variations.
+  const result = ui.alert(
+    'Please confirm',
+    'Have rows containing names and payment amounts been deleted from the IN sheet?',
+    ui.ButtonSet.YES_NO);
+  // Process the user's response.
+  if (result == ui.Button.YES) {
+    // User clicked "Yes".
+    ui.alert(
+      'The report will be finished shortly.');
+    runReport();
+    ui.alert('Report Completed');
+  } else {
+    // User clicked "No" or X in the title bar.
+    ui.alert('Report creation has been stopped.');
+  }
+}
