@@ -1,0 +1,11 @@
+function archiver() {
+  let sourceSpreadSheet = SpreadsheetApp.openByUrl(''); // or openById()
+  let sourceSheet = sourceSpreadSheet.getSheetByName('Sheet1'); // make sure you have edit access to both sheets
+  let sourceRange = sourceSheet.getDataRange();
+  let sourceValues = sourceRange.getValues();
+  let rowCount = sourceValues.length;
+  let columnCount = sourceValues[0].length;
+  let targetSpreadSheet = SpreadsheetApp.openByUrl('');
+  let targetRange = targetSpreadSheet.getRange(1, 1, rowCount, columnCount);
+  targetRange.setValues(sourceValues);
+}

@@ -1,0 +1,22 @@
+function stringToDate(string) {
+ let substrings = string.split('/');
+ const day = substrings[1];
+ const year = substrings[2];
+ let month;
+
+ if (substrings[0] == "1") { month = "January"; }
+ else if (substrings[0] == "2") { month = "Feburary"; }
+ else if (substrings[0] == "3") { month = "March"; }
+ else if (substrings[0] == "4") { month = "April"; }
+ else if (substrings[0] == "5") { month = "May"; }
+ else if (substrings[0] == "6") { month = "June"; }
+ else if (substrings[0] == "7") { month = "July"; }
+ else if (substrings[0] == "8") { month = "August"; }
+ else if (substrings[0] == "9") { month = "September"; }
+ else if (substrings[0] == "10") { month = "October"; }
+ else if (substrings[0] == "11") { month = "November"; }
+ else { month = "December"; }
+
+ const date = new Date(`${month} ${day}, ${year} 00:00:00`);
+ return date;
+}

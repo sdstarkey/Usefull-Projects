@@ -1,0 +1,14 @@
+function createIndices(sheetName, columnName, content) { // Create index numbers for referring to specific columns - with custom parameters
+ const ss = SpreadsheetApp.getActiveSpreadsheet();
+ const sheet = ss.getSheetByName(sheetName); // Replace Sheet1 with name of sheet
+
+ const headerRange = sheet.getRange(1, 1, 1, sheet.getLastColumn()); // Default is top row
+ const headerValues = headerRange.getValues()[0];
+ 
+ const specificColumn = headerValues.indexOf(columnName) + 1; // Replace Column with name of column
+
+ const currentCell = sheet.getCurrentCell(); // Grabs current cell
+ const rowOfCurrentCell = currentCell.getLastRow(); // or getRow() for current row
+ let rangeOfCellToSet = sheet.getRange(rowOfCurrentCell, specificColumn);
+ rangeOfCellToSet.setValue(content);
+}

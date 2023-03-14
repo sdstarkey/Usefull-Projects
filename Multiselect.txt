@@ -1,0 +1,54 @@
+function multiple_selection(e) {
+  /*
+  make sure to go into data validation and allow warnings instead of rejecting errors or else this code will fail.
+  */
+ let oldValue;
+ let newValue;
+ const activeSheet = e.source.getActiveSheet();
+ const sheetName = activeSheet.getName();
+ const rowNum = 1;
+ if (sheetName!=('Sheet1')){
+   console.log('broke at sheetName!=(Sheet 1)')
+   return
+ };
+// Don't edit early rows.
+ if (e.range.getLastRow() < 2){
+   console.log('broke at e.range.getLastRow() < 2')
+   return
+ };
+ // Bulk action means nothing.
+ if (e.range.getNumColumns() > 1){
+   console.log('broke at e.range.getNumColumns() > 1')
+   return
+ };
+ if (e.range.getNumRows() > 1){
+   console.log('broke at e.range.getNumRows() > 1')
+ };
+ const headerRange = activeSheet.getRange(rowNum, 1, 1, activeSheet.getMaxColumns());
+ const headerValues = headerRange.getValues()[0];
+ const pasColumn = headerValues.indexOf('Target Column');
+ const ss=SpreadsheetApp.getActiveSpreadsheet();
+ const activeCell = ss.getActiveCell();
+ if(activeCell.getColumn() == pasColumn+1) {
+   newValue=e.value;
+   console.log(newValue)
+   oldValue=e.oldValue;
+   console.log(oldValue)
+   if(!e.value) {
+     activeCell.setValue("");
+   }
+   else {
+     if (!e.oldValue) {
+       activeCell.setValue(newValue);
+     }
+     else
+       if(e.oldValue.indexOf(newValue)!=-1){
+         activeCell.setValue(oldValue)
+       }
+     else {
+       console.log(oldValue+', '+newValue)
+       activeCell.setValue(oldValue+', '+newValue);
+     }
+   }
+ }
+}
